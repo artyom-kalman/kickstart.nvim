@@ -324,7 +324,32 @@ require('lazy').setup({
           -- Jump to the definition of the word under your cursor.
           -- This is where a variable was first declared, or where a function is defined, etc.
           -- To jump back, press <C-t>.
-          vim.keymap.set('n', 'grd', builtin.lsp_definitions, { buffer = buf, desc = '[G]oto [D]efinition' })
+          vim.keymap.set('n', 'gd', builtin.lsp_definitions, { buffer = buf, desc = '[G]oto [D]efinition' })
+
+          -- Peek definition in a floating window without leaving the current buffer (press q to close)
+          vim.keymap.set('n', 'gpd', function()
+            vim.lsp.buf.definition {
+              on_list = function(options)
+                if #options.items == 0 then return end
+                local item = options.items[1]
+                local bufnr = vim.fn.bufadd(item.filename)
+                vim.fn.bufload(bufnr)
+                local start = math.max(0, item.lnum - 6)
+                local lines = vim.api.nvim_buf_get_lines(bufnr, start, item.lnum + 14, false)
+                local float_buf = vim.api.nvim_create_buf(false, true)
+                vim.api.nvim_buf_set_lines(float_buf, 0, -1, false, lines)
+                local ft = vim.bo[bufnr].filetype
+                if ft ~= '' then vim.bo[float_buf].filetype = ft end
+                vim.api.nvim_open_win(float_buf, true, {
+                  relative = 'cursor', row = 1, col = 0,
+                  width = math.min(80, vim.o.columns - 4),
+                  height = math.min(#lines, 20),
+                  style = 'minimal', border = 'rounded',
+                })
+                vim.keymap.set('n', 'q', '<cmd>close<CR>', { buffer = float_buf })
+              end,
+            }
+          end, { buffer = buf, desc = '[P]eek [D]efinition' })
 
           -- Fuzzy find all the symbols in your current document.
           -- Symbols are things like variables, functions, types, etc.
@@ -431,7 +456,7 @@ require('lazy').setup({
 
           -- Rename the variable under your cursor.
           --  Most Language Servers support renaming across files, etc.
-          map('grn', vim.lsp.buf.rename, '[R]e[n]ame')
+          map('cd', vim.lsp.buf.rename, '[R]e[n]ame')
 
           -- Execute a code action, usually your cursor needs to be on top of an error
           -- or a suggestion from your LSP for this to activate.
@@ -486,20 +511,9 @@ require('lazy').setup({
       --  So, we create new capabilities with blink.cmp, and then broadcast that to the servers.
       local capabilities = require('blink.cmp').get_lsp_capabilities()
 
-      -- Enable the following language servers
-      --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
-      --  See `:help lsp-config` for information about keys and how to configure
       local servers = {
-        -- clangd = {},
-        -- gopls = {},
-        -- pyright = {},
-        -- rust_analyzer = {},
-        --
-        -- Some languages (like typescript) have entire language plugins that can be useful:
-        --    https://github.com/pmizio/typescript-tools.nvim
-        --
-        -- But for many setups, the LSP (`ts_ls`) will work just fine
-        -- ts_ls = {},
+        gopls = {},
+        pyright = {},
       }
 
       -- Ensure the servers and tools above are installed
@@ -512,6 +526,7 @@ require('lazy').setup({
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
         'lua-language-server', -- Lua Language server
+        'typescript-language-server', -- TypeScript/JS
         'stylua', -- Used to format Lua code
         -- You can add other tools here that you want Mason to install
       })
@@ -523,6 +538,10 @@ require('lazy').setup({
         vim.lsp.config(name, server)
         vim.lsp.enable(name)
       end
+
+      -- TypeScript/JavaScript
+      vim.lsp.config('ts_ls', { capabilities = capabilities })
+      vim.lsp.enable('ts_ls')
 
       -- Special Lua Config, as recommended by neovim help docs
       vim.lsp.config('lua_ls', {
@@ -685,26 +704,22 @@ require('lazy').setup({
     },
   },
 
-  { -- You can easily change to a different colorscheme.
-    -- Change the name of the colorscheme plugin below, and then
-    -- change the command in the config to whatever the name of that colorscheme is.
-    --
-    -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-    'folke/tokyonight.nvim',
-    priority = 1000, -- Make sure to load this before all the other start plugins.
+  {
+    'rose-pine/neovim',
+    name = 'rose-pine',
+    priority = 1000,
     config = function()
-      ---@diagnostic disable-next-line: missing-fields
-      require('tokyonight').setup {
-        styles = {
-          comments = { italic = false }, -- Disable italics in comments
-        },
-      }
-
-      -- Load the colorscheme here.
-      -- Like many other themes, this one has different styles, and you could load
-      -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-      vim.cmd.colorscheme 'tokyonight-night'
+      require('rose-pine').setup {}
+      vim.cmd.colorscheme 'rose-pine'
     end,
+  },
+  {
+    'rebelot/kanagawa.nvim',
+    priority = 1000,
+  },
+  {
+    'sainnhe/gruvbox-material',
+    priority = 1000,
   },
 
   -- Highlight todo, notes, etc in comments
