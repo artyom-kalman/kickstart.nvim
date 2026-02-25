@@ -51,6 +51,11 @@ vim.o.timeoutlen = 300
 vim.o.splitright = true
 vim.o.splitbelow = true
 
+vim.api.nvim_create_autocmd({ 'BufLeave', 'FocusLost', 'CursorHold', 'CursorHoldI' }, {
+  pattern = '*',
+  command = 'silent! wall',
+})
+
 -- Sets how neovim will display certain whitespace characters in the editor.
 --  See `:help 'list'`
 --  and `:help 'listchars'`
@@ -341,10 +346,13 @@ require('lazy').setup({
                 local ft = vim.bo[bufnr].filetype
                 if ft ~= '' then vim.bo[float_buf].filetype = ft end
                 vim.api.nvim_open_win(float_buf, true, {
-                  relative = 'cursor', row = 1, col = 0,
+                  relative = 'cursor',
+                  row = 1,
+                  col = 0,
                   width = math.min(80, vim.o.columns - 4),
                   height = math.min(#lines, 20),
-                  style = 'minimal', border = 'rounded',
+                  style = 'minimal',
+                  border = 'rounded',
                 })
                 vim.keymap.set('n', 'q', '<cmd>close<CR>', { buffer = float_buf })
               end,
@@ -541,7 +549,7 @@ require('lazy').setup({
 
       -- TypeScript/JavaScript
       vim.lsp.config('ts_ls', { capabilities = capabilities })
-      vim.lsp.enable('ts_ls')
+      vim.lsp.enable 'ts_ls'
 
       -- Special Lua Config, as recommended by neovim help docs
       vim.lsp.config('lua_ls', {
