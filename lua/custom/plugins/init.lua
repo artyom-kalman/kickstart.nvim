@@ -32,4 +32,24 @@ return {
       { '<leader>gs', '<cmd>Git<cr>', desc = 'Git status (Fugitive)' },
     },
   },
+
+  {
+    'stevearc/conform.nvim',
+    event = 'BufWritePre',
+    opts = {
+      formatters_by_ft = {
+        javascript = { 'prettier' },
+        typescript = { 'prettier' },
+        css = { 'prettier' },
+        html = { 'prettier' },
+        json = { 'prettier' },
+        yaml = { 'prettier' },
+        markdown = { 'prettier' },
+      },
+      format_on_save = {
+        timeout_ms = 500,
+        lsp_format = 'fallback',
+      },
+    },
+  },
 }
