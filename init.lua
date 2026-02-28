@@ -533,10 +533,10 @@ require('lazy').setup({
       -- You can press `g?` for help in this menu.
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
-        'lua-language-server', -- Lua Language server
-        'typescript-language-server', -- TypeScript/JS
-        'stylua', -- Used to format Lua code
-        -- You can add other tools here that you want Mason to install
+        'lua-language-server',
+        'typescript-language-server',
+        'stylua',
+        'yaml-language-server',
       })
 
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
@@ -550,6 +550,19 @@ require('lazy').setup({
       -- TypeScript/JavaScript
       vim.lsp.config('ts_ls', { capabilities = capabilities })
       vim.lsp.enable 'ts_ls'
+
+      -- YAML
+      vim.lsp.config('yamlls', {
+        capabilities = capabilities,
+        settings = {
+          yaml = {
+            schemas = {
+              ['https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json'] = 'docker-compose*.yml',
+            },
+          },
+        },
+      })
+      vim.lsp.enable 'yamlls'
 
       -- Special Lua Config, as recommended by neovim help docs
       vim.lsp.config('lua_ls', {
@@ -772,11 +785,13 @@ require('lazy').setup({
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
     config = function()
-      local filetypes = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' }
+      local filetypes = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'yaml' }
       require('nvim-treesitter').install(filetypes)
       vim.api.nvim_create_autocmd('FileType', {
         pattern = filetypes,
-        callback = function() vim.treesitter.start() end,
+        callback = function()
+          if pcall(vim.treesitter.start) then return end
+        end,
       })
     end,
   },
