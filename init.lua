@@ -350,21 +350,21 @@ require('lazy').setup({
           -- To jump back, press <C-t>.
           vim.keymap.set('n', 'gd', builtin.lsp_definitions, { buffer = buf, desc = '[G]oto [D]efinition' })
 
-          -- Peek definition in a floating window without leaving the current buffer (press q to close)
-          vim.keymap.set('n', 'gpd', function()
+          local peek_definition = function()
             vim.lsp.buf.definition {
               on_list = function(options)
                 if #options.items == 0 then return end
                 local item = options.items[1]
-                local bufnr = vim.fn.bufadd(item.filename)
-                vim.fn.bufload(bufnr)
+                local src_bufnr = vim.fn.bufadd(item.filename)
+                vim.fn.bufload(src_bufnr)
                 local start = math.max(0, item.lnum - 6)
-                local lines = vim.api.nvim_buf_get_lines(bufnr, start, item.lnum + 14, false)
+                local lines = vim.api.nvim_buf_get_lines(src_bufnr, start, item.lnum + 14, false)
                 local float_buf = vim.api.nvim_create_buf(false, true)
                 vim.api.nvim_buf_set_lines(float_buf, 0, -1, false, lines)
-                local ft = vim.bo[bufnr].filetype
+                local ft = vim.bo[src_bufnr].filetype
                 if ft ~= '' then vim.bo[float_buf].filetype = ft end
-                vim.api.nvim_open_win(float_buf, true, {
+                local prev_win = vim.api.nvim_get_current_win()
+                local float_win = vim.api.nvim_open_win(float_buf, true, {
                   relative = 'cursor',
                   row = 1,
                   col = 0,
@@ -373,10 +373,22 @@ require('lazy').setup({
                   style = 'minimal',
                   border = 'rounded',
                 })
-                vim.keymap.set('n', 'q', '<cmd>close<CR>', { buffer = float_buf })
+                local close_float = function()
+                  if vim.api.nvim_win_is_valid(float_win) then
+                    vim.api.nvim_win_close(float_win, true)
+                  end
+                  if vim.api.nvim_win_is_valid(prev_win) then
+                    vim.api.nvim_set_current_win(prev_win)
+                  end
+                end
+                vim.keymap.set('n', 'q', close_float, { buffer = float_buf, desc = 'Close peek' })
+                vim.keymap.set('n', '<Esc>', close_float, { buffer = float_buf, desc = 'Close peek' })
               end,
             }
-          end, { buffer = buf, desc = '[P]eek [D]efinition' })
+          end
+
+          -- Peek definition in a floating window without leaving the current buffer (q or Esc to close)
+          vim.keymap.set('n', 'gh', peek_definition, { buffer = buf, desc = 'Peek definition' })
 
           -- Fuzzy find all the symbols in your current document.
           -- Symbols are things like variables, functions, types, etc.
